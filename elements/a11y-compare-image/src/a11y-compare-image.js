@@ -40,7 +40,7 @@ class a11yCompareImage extends LitElement {
         }
         ::slotted([slot="top"]) {
           top: 0;
-          left:0;
+          left: 0;
           opacity: var(--a11y-compare-image-opacity, 1);
           position: absolute;
           width: var(--a11y-compare-image-image-width);
@@ -67,11 +67,11 @@ class a11yCompareImage extends LitElement {
     this.opacity = false;
     import("@polymer/iron-image/iron-image.js");
     import("@polymer/paper-slider/paper-slider.js");
-    let layers = this.querySelectorAll("[slot=top]")
-    let total = layers.length
-    let section = 100/total
-    this.snap=section
-    this.maxMarkers = total
+    let layers = this.querySelectorAll("[slot=top]");
+    let total = layers.length;
+    let section = 100 / total;
+    this.snap = section;
+    this.maxMarkers = total;
   }
   render() {
     return html`
@@ -88,10 +88,14 @@ class a11yCompareImage extends LitElement {
             </div>
           </div>
         </div>
-        <paper-slider id="slider" snaps markers=[33,66] max-markers="${this.maxMarkers}"value="0"></paper-slider>
-        
+        <paper-slider
+          id="slider"
+          snaps
+          markers="[33,66]"
+          max-markers="${this.maxMarkers}"
+          value="0"
+        ></paper-slider>
       </figure>
-     
     `;
   }
 
@@ -102,7 +106,7 @@ class a11yCompareImage extends LitElement {
   static get properties() {
     return {
       ...super.properties,
-      
+
       /**
        * Number of snap/dots on the slider bar
        */
@@ -178,36 +182,29 @@ class a11yCompareImage extends LitElement {
    * updates the slider
    */
   _slide() {
-    let top = this.shadowRoot.querySelector("#top")
-    let layers = this.querySelectorAll("[slot=top]")
-    let total = layers.length
-    let section = 100/total
+    let top = this.shadowRoot.querySelector("#top");
+    let layers = this.querySelectorAll("[slot=top]");
+    let total = layers.length;
+    let section = 100 / total;
     let slider = this.shadowRoot.querySelector("#slider");
-    let activeLayer = Math.floor(slider.immediateValue/section)
-    let position = slider.immediateValue-(section*activeLayer) / section
-      console.log(top, layers, section, activeLayer, position, total)
-      slider.step=section
-      layers.forEach((layer,index)=>{
-        layer.hidden=index!=activeLayer && index+1 != activeLayer
-      })
+    let activeLayer = Math.floor(slider.immediateValue / section);
+    let position = slider.immediateValue - (section * activeLayer) / section;
+    console.log(top, layers, section, activeLayer, position, total);
+    slider.step = section;
+    layers.forEach((layer, index) => {
+      layer.hidden = index != activeLayer && index + 1 != activeLayer;
+    });
     if (this.opacity === false) {
-      top.style.setProperty(
-        "--a11y-compare-image-width",
-        position + "%"
-      );
+      top.style.setProperty("--a11y-compare-image-width", position + "%");
       top.style.setProperty(
         "--a11y-compare-image-image-width",
         10000 / position + "%"
       );
       top.style.setProperty("--a11y-compare-image-opacity", 1);
-      }
-      else {
+    } else {
       top.style.setProperty("--a11y-compare-image-width", "100%");
       top.style.setProperty("--a11y-compare-image-image-width", "100%");
-      top.style.setProperty(
-        "--a11y-compare-image-opacity",
-        position / 100
-      );
+      top.style.setProperty("--a11y-compare-image-opacity", position / 100);
     }
   }
 }
