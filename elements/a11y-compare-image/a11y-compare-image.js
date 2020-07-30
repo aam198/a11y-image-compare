@@ -27,7 +27,8 @@ class a11yCompareImage extends LitElement {
           margin: 0;
           padding: 0;
         }
-        #container, #input{
+        #container,
+        #input {
           position: relative;
         }
         #container {
@@ -42,14 +43,14 @@ class a11yCompareImage extends LitElement {
           opacity: var(--a11y-compare-image-opacity, 1);
           width: var(--a11y-compare-image-width, 50%);
           background-size: cover;
-          background-position-x:0%;
+          background-position-x: 0%;
           background-repeat: no-repeat;
         }
 
         #placeholder {
           opacity: 0;
         }
-        
+
         #bottom {
           width: 100%;
         }
@@ -60,7 +61,7 @@ class a11yCompareImage extends LitElement {
           width: calc(100% + 32px);
           margin: -15px 0 0 -16px;
         }
-        .marker{
+        .marker {
           top: -3px;
           position: absolute;
           width: 1px;
@@ -77,12 +78,10 @@ class a11yCompareImage extends LitElement {
   constructor() {
     super();
     this.opacity = false;
-    this.position=0;
-    this.__markers=[];
+    this.position = 0;
+    this.__markers = [];
     import("@polymer/iron-image/iron-image.js");
     import("@polymer/paper-slider/paper-slider.js");
-    
-    
   }
   render() {
     return html`
@@ -97,21 +96,24 @@ class a11yCompareImage extends LitElement {
               <slot id="bottom" name="bottom"></slot>
             </div>
 
-              <slot name="top" hidden></slot>
-           
-           <div id="layer" style="background-image: url(${this.__upper})">
-           
-           </div>
-           <slot></slot>
+            <slot name="top" hidden></slot>
+
+            <div
+              id="layer"
+              style="background-image: url(${this.__upper})"
+            ></div>
+            <slot></slot>
           </div>
         </div>
-      <div id="input">${this.__markers.map(marker=>html`<div class="marker" style="left: ${marker}%;"></div>`)}
-        <paper-slider
-          id="slider"
-          value="0"
-        ></paper-slider>
-      </div>
-
+        <div id="input">
+          ${this.__markers.map(
+            marker =>
+              html`
+                <div class="marker" style="left: ${marker}%;"></div>
+              `
+          )}
+          <paper-slider id="slider" value="0"></paper-slider>
+        </div>
       </figure>
     `;
   }
@@ -129,41 +131,39 @@ class a11yCompareImage extends LitElement {
         attribute: "active-layer",
         reflect: true
       },
-      
+
       /**
        * mode for the slider: wipe
        */
       opacity: {
         type: Boolean
       },
-     
+
       position: {
         type: Number,
         attribute: "position",
         reflect: true
       },
 
-      __lower:{
-        type: String,
-
+      __lower: {
+        type: String
       },
-      __upper:{
-        type: String,
+      __upper: {
+        type: String
       },
-      __markers:{
-        type: Array,
+      __markers: {
+        type: Array
       }
-
     };
   }
- 
+
   firstUpdated() {
-    let slider= this.shadowRoot.querySelector("#slider");
-    slider.value=this.position||0;
+    let slider = this.shadowRoot.querySelector("#slider");
+    slider.value = this.position || 0;
     this._slide();
-      slider.addEventListener("immediate-value-changed", e => {
-        this._slide();
-      });
+    slider.addEventListener("immediate-value-changed", e => {
+      this._slide();
+    });
   }
   /**
    * updates the slider
@@ -172,45 +172,51 @@ class a11yCompareImage extends LitElement {
     let container = this.shadowRoot.querySelector("#container");
     let layers = this.querySelectorAll("[slot=top],[slot=bottom]");
     // This is the total number of transitions between layers
-    let total = layers.length-1;
+    let total = layers.length - 1;
     //This is percent of the slider for each section
     let section = 100 / total;
     let slider = this.shadowRoot.querySelector("#slider");
     // Index of the upper image
-    let active = Math.floor(slider.immediateValue / section)||0;
+    let active = Math.floor(slider.immediateValue / section) || 0;
     // This is the layer number that is current on top.
-    this.activeLayer = active+1;
-    // This is the slider percent when upper image is at 0. 
-    let lastSection = section*active;
-    // How far we are into the current section. 
+    this.activeLayer = active + 1;
+    // This is the slider percent when upper image is at 0.
+    let lastSection = section * active;
+    // How far we are into the current section.
     let relativePosition = slider.immediateValue - lastSection;
     // Percentage into the current section
-    this.position = (relativePosition*100)/section||0;
+    this.position = (relativePosition * 100) / section || 0;
     // Set background images
-    this.__upper = (layers[active+1].src||layers[active].src);
+    this.__upper = layers[active + 1].src || layers[active].src;
     this.__lower = layers[active].src;
-    // Adding Fake markers behind the slider. 
+    // Adding Fake markers behind the slider.
 
-    if(total-1 != this.__markers.length){
+    if (total - 1 != this.__markers.length) {
       this._updateMarkers(total);
     }
 
     if (this.opacity === false) {
-      container.style.setProperty("--a11y-compare-image-width", this.position + "%");
+      container.style.setProperty(
+        "--a11y-compare-image-width",
+        this.position + "%"
+      );
       container.style.setProperty("--a11y-compare-image-opacity", 1);
     } else {
       container.style.setProperty("--a11y-compare-image-width", "100%");
-      container.style.setProperty("--a11y-compare-image-opacity", this.position / 100);
+      container.style.setProperty(
+        "--a11y-compare-image-opacity",
+        this.position / 100
+      );
     }
   }
 
-  _updateMarkers(total){ 
-    this.__markers= [];
+  _updateMarkers(total) {
+    this.__markers = [];
 
-   if (total !=0){
-     let step = 100/total;
-     for (let i = step; i<100; i+=step){
-       this.__markers.push(i)
+    if (total != 0) {
+      let step = 100 / total;
+      for (let i = step; i < 100; i += step) {
+        this.__markers.push(i);
       }
     }
   }
