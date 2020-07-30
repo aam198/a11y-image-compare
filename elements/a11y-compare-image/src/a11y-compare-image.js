@@ -27,34 +27,46 @@ class a11yCompareImage extends LitElement {
           margin: 0;
           padding: 0;
         }
-        #container > div {
+        #container, #input{
           position: relative;
         }
-        #top {
+        #container {
+          background-size: contain;
+          background-repeat: no-repeat;
+        }
+        #layer {
           top: 0;
           left: 0;
           position: absolute;
+          height: 100%;
           opacity: var(--a11y-compare-image-opacity, 1);
           width: var(--a11y-compare-image-width, 50%);
-          overflow: hidden;
+          background-size: cover;
+          background-position-x:0%;
+          background-repeat: no-repeat;
         }
-        ::slotted([slot="top"]) {
-          top: 0;
-          left: 0;
-          opacity: var(--a11y-compare-image-opacity, 1);
-          position: absolute;
-          width: var(--a11y-compare-image-image-width);
+
+        #placeholder {
+          opacity: 0;
         }
-        ::slotted([slot="top"]),
-        #bottom {
-          display: block;
-        }
+        
         #bottom {
           width: 100%;
         }
         #slider {
+          top: 0;
+          left: 0;
+          position: absolute;
           width: calc(100% + 32px);
           margin: -15px 0 0 -16px;
+        }
+        .marker{
+          top: -3px;
+          position: absolute;
+          width: 1px;
+          height: 10px;
+          outline: 2px solid #bbb;
+          background-color: #bbb;
         }
         ::slotted([slot="bottom"]) {
           max-width: 100%;
@@ -65,13 +77,12 @@ class a11yCompareImage extends LitElement {
   constructor() {
     super();
     this.opacity = false;
+    this.position=0;
+    this.__markers=[];
     import("@polymer/iron-image/iron-image.js");
     import("@polymer/paper-slider/paper-slider.js");
-    let layers = this.querySelectorAll("[slot=top]");
-    let total = layers.length;
-    let section = 100 / total;
-    this.snap = section;
-    this.maxMarkers = total;
+    
+    
   }
   render() {
     return html`
@@ -80,21 +91,27 @@ class a11yCompareImage extends LitElement {
           <slot name="heading"></slot>
           <div id="description"><slot name="description"></slot></div>
         </figcaption>
-        <div id="container">
+        <div id="container" style="background-image: url(${this.__lower})">
           <div>
-            <slot id="bottom" name="bottom"></slot>
-            <div id="top">
-              <slot name="top"></slot>
+            <div id="placeholder">
+              <slot id="bottom" name="bottom"></slot>
             </div>
+
+              <slot name="top" hidden></slot>
+           
+           <div id="layer" style="background-image: url(${this.__upper})">
+           
+           </div>
+           <slot></slot>
           </div>
         </div>
+      <div id="input">${this.__markers.map(marker=>html`<div class="marker" style="left: ${marker}%;"></div>`)}
         <paper-slider
           id="slider"
-          snaps
-          markers="[33,66]"
-          max-markers="${this.maxMarkers}"
           value="0"
         ></paper-slider>
+      </div>
+
       </figure>
     `;
   }
@@ -107,74 +124,44 @@ class a11yCompareImage extends LitElement {
     return {
       ...super.properties,
 
-      /**
-       * Number of snap/dots on the slider bar
-       */
-      maxMarkers: {
+      activeLayer: {
         type: Number,
-        attribute: "max-marker"
+        attribute: "active-layer",
+        reflect: true
       },
-      /**
-       * dots on the slider bar
-       */
-      snap: {
-        type: Number,
-        attribute: "snap"
-      },
-      /**
-       * text for button that displays longdesc
-       */
-      longdescText: {
-        type: String,
-        attribute: "summary-text"
-      },
+      
       /**
        * mode for the slider: wipe
        */
       opacity: {
         type: Boolean
       },
-      /**
-       * @deprecated Use `slot=heading`
-       */
-      title: {
-        type: String
+     
+      position: {
+        type: Number,
+        attribute: "position",
+        reflect: true
       },
-      /**
-       * src for top image
-       */
-      topAlt: {
+
+      __lower:{
         type: String,
-        attribute: "top-alt"
+
       },
-      /**
-       * aria-describedby for top image
-       */
-      topDescriptionId: {
+      __upper:{
         type: String,
-        attribute: "top-description-id"
       },
-      /**
-       * src for top image
-       */
-      topSrc: {
-        type: String,
-        attribute: "top-src"
+      __markers:{
+        type: Array,
       }
+
     };
   }
-  updated(changedProperties) {
-    changedProperties.forEach((oldValue, propName) => {
-      if (["topSrc"].includes(propName)) {
-        this._slide();
-      }
-    });
-  }
+ 
   firstUpdated() {
+    let slider= this.shadowRoot.querySelector("#slider");
+    slider.value=this.position||0;
     this._slide();
-    this.shadowRoot
-      .querySelector("#slider")
-      .addEventListener("immediate-value-changed", e => {
+      slider.addEventListener("immediate-value-changed", e => {
         this._slide();
       });
   }
@@ -182,29 +169,49 @@ class a11yCompareImage extends LitElement {
    * updates the slider
    */
   _slide() {
-    let top = this.shadowRoot.querySelector("#top");
-    let layers = this.querySelectorAll("[slot=top]");
-    let total = layers.length;
+    let container = this.shadowRoot.querySelector("#container");
+    let layers = this.querySelectorAll("[slot=top],[slot=bottom]");
+    // This is the total number of transitions between layers
+    let total = layers.length-1;
+    //This is percent of the slider for each section
     let section = 100 / total;
     let slider = this.shadowRoot.querySelector("#slider");
-    let activeLayer = Math.floor(slider.immediateValue / section);
-    let position = slider.immediateValue - (section * activeLayer) / section;
-    console.log(top, layers, section, activeLayer, position, total);
-    slider.step = section;
-    layers.forEach((layer, index) => {
-      layer.hidden = index != activeLayer && index + 1 != activeLayer;
-    });
+    // Index of the upper image
+    let active = Math.floor(slider.immediateValue / section)||0;
+    // This is the layer number that is current on top.
+    this.activeLayer = active+1;
+    // This is the slider percent when upper image is at 0. 
+    let lastSection = section*active;
+    // How far we are into the current section. 
+    let relativePosition = slider.immediateValue - lastSection;
+    // Percentage into the current section
+    this.position = (relativePosition*100)/section||0;
+    // Set background images
+    this.__upper = (layers[active+1].src||layers[active].src);
+    this.__lower = layers[active].src;
+    // Adding Fake markers behind the slider. 
+
+    if(total-1 != this.__markers.length){
+      this._updateMarkers(total);
+    }
+
     if (this.opacity === false) {
-      top.style.setProperty("--a11y-compare-image-width", position + "%");
-      top.style.setProperty(
-        "--a11y-compare-image-image-width",
-        10000 / position + "%"
-      );
-      top.style.setProperty("--a11y-compare-image-opacity", 1);
+      container.style.setProperty("--a11y-compare-image-width", this.position + "%");
+      container.style.setProperty("--a11y-compare-image-opacity", 1);
     } else {
-      top.style.setProperty("--a11y-compare-image-width", "100%");
-      top.style.setProperty("--a11y-compare-image-image-width", "100%");
-      top.style.setProperty("--a11y-compare-image-opacity", position / 100);
+      container.style.setProperty("--a11y-compare-image-width", "100%");
+      container.style.setProperty("--a11y-compare-image-opacity", this.position / 100);
+    }
+  }
+
+  _updateMarkers(total){ 
+    this.__markers= [];
+
+   if (total !=0){
+     let step = 100/total;
+     for (let i = step; i<100; i+=step){
+       this.__markers.push(i)
+      }
     }
   }
 }
